@@ -1,0 +1,19 @@
+/* src/index.css */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  background-color: #000000; /* Forces entire screen to be black */
+  color: #EDEDED;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  display: block; /* Removes Vite's flex alignment constraints */
+}

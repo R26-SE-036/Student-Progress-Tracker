@@ -15,7 +15,10 @@ export default function ValidationQuiz({ studentId, errorType, codeSnippet }) {
     const payload = { student_id: studentId, error_type: errorType, code_snippet: codeSnippet };
     axios.post('http://127.0.0.1:8000/api/quiz/generate', payload)
       .then(response => {
-        setQuizData(response.data.quiz_data);
+        // Ensure data is valid before setting
+        if (response.data.quiz_data && response.data.quiz_data.length > 0) {
+          setQuizData(response.data.quiz_data);
+        }
         setQuizLoading(false);
       })
       .catch(error => {
@@ -26,7 +29,7 @@ export default function ValidationQuiz({ studentId, errorType, codeSnippet }) {
 
   const checkAnswer = () => {
     setIsAnswerChecked(true);
-    if (selectedOption === quizData[currentQIndex].correct_answer) {
+    if (selectedOption === quizData[currentQIndex]?.correct_answer) {
       setScore(score + 1);
     }
   };
@@ -60,7 +63,7 @@ export default function ValidationQuiz({ studentId, errorType, codeSnippet }) {
         <div style={{ margin: '30px 0' }}>
           <span className="cg-text-muted" style={{ fontSize: '1.2rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Final Score</span>
           <h1 style={{ fontSize: '4rem', margin: '10px 0', color: passed ? '#32D74B' : '#FF453A' }}>
-            {score}<span style={{color: '#333'}}>/</span>{quizData?.length}
+            {score}<span style={{color: '#333'}}>/</span>{quizData?.length || 2}
           </h1>
         </div>
 
@@ -89,11 +92,12 @@ export default function ValidationQuiz({ studentId, errorType, codeSnippet }) {
           </div>
           
           <h3 className="cg-title-section" style={{ fontSize: '1.3rem', marginBottom: '30px', lineHeight: '1.5' }}>
-            {quizData[currentQIndex].question}
+            {quizData[currentQIndex]?.question || "Question could not be loaded."}
           </h3>
           
           <div className="cg-flex-col" style={{ gap: '15px', marginBottom: '30px' }}>
-            {quizData[currentQIndex].options.map((option, idx) => (
+            {/* ADDED OPTIONAL CHAINING HERE (?.) TO PREVENT CRASHES */}
+            {quizData[currentQIndex]?.options?.map((option, idx) => (
               <button 
                 key={idx}
                 onClick={() => !isAnswerChecked && setSelectedOption(option)}
@@ -106,11 +110,11 @@ export default function ValidationQuiz({ studentId, errorType, codeSnippet }) {
           </div>
 
           {isAnswerChecked && (
-            <div className={`cg-feedback-box ${selectedOption === quizData[currentQIndex].correct_answer ? 'cg-feedback-success' : 'cg-feedback-error'}`}>
-              <h4 style={{ margin: '0 0 8px 0', color: selectedOption === quizData[currentQIndex].correct_answer ? '#32D74B' : '#FF453A' }}>
-                {selectedOption === quizData[currentQIndex].correct_answer ? "Correct" : "Incorrect"}
+            <div className={`cg-feedback-box ${selectedOption === quizData[currentQIndex]?.correct_answer ? 'cg-feedback-success' : 'cg-feedback-error'}`}>
+              <h4 style={{ margin: '0 0 8px 0', color: selectedOption === quizData[currentQIndex]?.correct_answer ? '#32D74B' : '#FF453A' }}>
+                {selectedOption === quizData[currentQIndex]?.correct_answer ? "Correct" : "Incorrect"}
               </h4>
-              <p style={{ margin: 0, color: '#EDEDED' }}>{quizData[currentQIndex].explanation}</p>
+              <p style={{ margin: 0, color: '#EDEDED' }}>{quizData[currentQIndex]?.explanation}</p>
             </div>
           )}
 

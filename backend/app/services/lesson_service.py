@@ -4,10 +4,9 @@ import requests
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import PromptTemplate
-
-# 🔴 Import our new RAG Service
 from app.services.rag_service import retrieve_context
 
+# Load environment variables
 base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 env_path = os.path.join(base_dir, '.env')
 load_dotenv(env_path)
@@ -24,6 +23,7 @@ print("="*40 + "\n")
 
 model_name = "gemini-flash-latest"
 
+# Initialize LangChain AI Model
 try:
     llm = ChatGoogleGenerativeAI(
         model=model_name, 
@@ -33,6 +33,7 @@ try:
 except Exception as e:
     llm = None
 
+# Smart Mock Data (Used if AI fails)
 def get_smart_fallback(student_id, error_type, code_snippet):
     return {
         "issue": f"Logical Constraint Issue: {error_type}",
@@ -47,11 +48,11 @@ def generate_real_lesson(student_id: str, error_type: str, code_snippet: str):
     if not api_key:
         return get_smart_fallback(student_id, error_type, code_snippet)
 
-    # 🔴 1. Retrieval Step: Fetch relevant notes from University Syllabus Vector DB
+    # 1. Retrieval Step: Fetch relevant notes from ChromaDB
     search_query = f"Explain {error_type} and how to fix {code_snippet}"
     retrieved_context = retrieve_context(search_query)
 
-    # 🔴 2. Augmentation Step: Inject the retrieved notes into the AI prompt
+    # 2. Augmentation Step: Inject notes into the AI prompt
     prompt_template = """
     You are 'Code Guru', an expert computer science tutor for first-year IT students.
     A student (ID: {student_id}) has made the following logical error 3 times in Java:
@@ -85,23 +86,26 @@ def generate_real_lesson(student_id: str, error_type: str, code_snippet: str):
         student_id=student_id, 
         error_type=error_type, 
         code_snippet=code_snippet, 
-        context=retrieved_context # 🔴 Passing the RAG context here
+        context=retrieved_context 
     )
     
     content = ""
 
-    # 🔴 3. Generation Step: AI generates the response based on the Prompt + Context
+    # 3. Try generating response using LangChain
     try:
         response = llm.invoke(formatted_prompt)
         content = response.content
         print("✅ Graph RAG Generation Success: Using LangChain")
     except Exception as e:
         print(f"\n⚠️ LangChain Failed: {e}")
+        
+        # 4. Try Direct REST API if LangChain fails
         try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
             headers = {'Content-Type': 'application/json'}
             data = {"contents": [{"parts": [{"text": formatted_prompt}]}], "generationConfig": {"temperature": 0.3}}
             res = requests.post(url, headers=headers, json=data)
+            
             if res.status_code == 200:
                 content = res.json()['candidates'][0]['content']['parts'][0]['text']
                 print("✅ Graph RAG Generation Success: Using Direct REST API")
@@ -110,14 +114,28 @@ def generate_real_lesson(student_id: str, error_type: str, code_snippet: str):
         except Exception as fallback_error:
             return get_smart_fallback(student_id, error_type, code_snippet)
 
+    # 5. Safe JSON Parsing (Handles both String and Dictionary formats)
     try:
-        content = content.replace("```json", "").replace("```", "").strip()
-        start_index = content.find('{')
-        end_index = content.rfind('}')
-        if start_index != -1 and end_index != -1:
-            clean_json = content[start_index:end_index+1]
-            return json.loads(clean_json)
+        # If the AI model already returned a parsed dictionary, return it directly
+        if isinstance(content, dict):
+            return content
+            
+        # If the AI model returned a string, clean and parse it
+        elif isinstance(content, str):
+            content = content.replace("```json", "").replace("```", "").strip()
+            start_index = content.find('{')
+            end_index = content.rfind('}')
+            
+            if start_index != -1 and end_index != -1:
+                clean_json = content[start_index:end_index+1]
+                return json.loads(clean_json)
+            else:
+                return get_smart_fallback(student_id, error_type, code_snippet)
+                
+        # Fallback for unexpected data types
         else:
             return get_smart_fallback(student_id, error_type, code_snippet)
+            
     except Exception as parse_error:
+        print(f"❌ JSON Parsing Error: {parse_error}")
         return get_smart_fallback(student_id, error_type, code_snippet)

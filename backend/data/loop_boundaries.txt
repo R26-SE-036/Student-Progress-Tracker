@@ -1,0 +1,10 @@
+Topic: Array Index Out Of Bounds and Loop Boundaries
+In Java programming, arrays are zero-indexed. This means if an array has a length of 'n', the valid indices are from 0 to 'n-1'.
+A common novice mistake is using the '<=' operator in a for-loop condition, like: for(int i=0; i <= arr.length; i++).
+When 'i' equals 'arr.length', it attempts to access an index that does not exist, throwing an ArrayIndexOutOfBoundsException.
+To fix this, students must use the strict less-than operator '<' to ensure the loop terminates before reaching the array's length.
+Example of safe array iteration:
+for(int i = 0; i < arr.length; i++) {
+    System.out.println(arr[i]);
+}
+When teaching this concept, always remind students to draw a physical memory box to visualize indices.

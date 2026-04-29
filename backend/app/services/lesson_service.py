@@ -5,7 +5,9 @@ from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import PromptTemplate
 
-# Explicitly find the .env file
+# 🔴 Import our new RAG Service
+from app.services.rag_service import retrieve_context
+
 base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 env_path = os.path.join(base_dir, '.env')
 load_dotenv(env_path)
@@ -31,7 +33,6 @@ try:
 except Exception as e:
     llm = None
 
-# --- SMART MOCK DATA FOR DEMO SAFETY ---
 def get_smart_fallback(student_id, error_type, code_snippet):
     return {
         "issue": f"Logical Constraint Issue: {error_type}",
@@ -46,36 +47,54 @@ def generate_real_lesson(student_id: str, error_type: str, code_snippet: str):
     if not api_key:
         return get_smart_fallback(student_id, error_type, code_snippet)
 
-    # UPDATED PROMPT: Requesting exampleCode, videoUrl, and referenceLink
+    # 🔴 1. Retrieval Step: Fetch relevant notes from University Syllabus Vector DB
+    search_query = f"Explain {error_type} and how to fix {code_snippet}"
+    retrieved_context = retrieve_context(search_query)
+
+    # 🔴 2. Augmentation Step: Inject the retrieved notes into the AI prompt
     prompt_template = """
     You are 'Code Guru', an expert computer science tutor for first-year IT students.
     A student (ID: {student_id}) has made the following logical error 3 times in Java:
     Error Type: {error_type}
     Code Snippet: {code_snippet}
 
-    Provide the response in the following structured JSON format exactly. Do not output any markdown formatting, just the raw JSON:
+    === UNIVERSITY SYLLABUS NOTES (KNOWLEDGE BASE) ===
+    {context}
+    ==================================================
+
+    Using the UNIVERSITY SYLLABUS NOTES provided above as your primary pedagogical source, generate a personalized micro-lesson. 
+    Do NOT give the direct answer or corrected code in the explanation, but provide it in the 'exampleCode' section.
+    
+    Provide the response in the following structured JSON format exactly:
     {{
         "issue": "A brief 1-sentence title of the core issue",
-        "explanation": "A pedagogical explanation of why this concept happens in Java.",
+        "explanation": "A pedagogical explanation based on the syllabus notes provided.",
         "exampleCode": "Write a brief Java code snippet showing the INCORRECT way as a comment, and the CORRECT way underneath it.",
-        "videoUrl": "Provide a relevant YouTube search URL, e.g., https://www.youtube.com/results?search_query=java+loop+boundaries",
-        "referenceLink": "Provide a relevant documentation link, e.g., https://docs.oracle.com/javase/tutorial/java/nutsandbolts/for.html",
+        "videoUrl": "Provide a relevant YouTube search URL",
+        "referenceLink": "Provide a relevant documentation link",
         "hint": "A guiding question or hint to help them fix the code themselves"
     }}
     """
 
     prompt = PromptTemplate(
-        input_variables=["student_id", "error_type", "code_snippet"],
+        input_variables=["student_id", "error_type", "code_snippet", "context"],
         template=prompt_template
     )
     
-    formatted_prompt = prompt.format(student_id=student_id, error_type=error_type, code_snippet=code_snippet)
+    formatted_prompt = prompt.format(
+        student_id=student_id, 
+        error_type=error_type, 
+        code_snippet=code_snippet, 
+        context=retrieved_context # 🔴 Passing the RAG context here
+    )
+    
     content = ""
 
+    # 🔴 3. Generation Step: AI generates the response based on the Prompt + Context
     try:
         response = llm.invoke(formatted_prompt)
         content = response.content
-        print("✅ Generation Success: Using LangChain")
+        print("✅ Graph RAG Generation Success: Using LangChain")
     except Exception as e:
         print(f"\n⚠️ LangChain Failed: {e}")
         try:
@@ -85,7 +104,7 @@ def generate_real_lesson(student_id: str, error_type: str, code_snippet: str):
             res = requests.post(url, headers=headers, json=data)
             if res.status_code == 200:
                 content = res.json()['candidates'][0]['content']['parts'][0]['text']
-                print("✅ Generation Success: Using Direct REST API")
+                print("✅ Graph RAG Generation Success: Using Direct REST API")
             else:
                 raise Exception(f"Google API Error: {res.text}")
         except Exception as fallback_error:

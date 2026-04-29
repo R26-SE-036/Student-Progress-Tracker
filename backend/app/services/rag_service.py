@@ -14,7 +14,7 @@ api_key = os.getenv("GEMINI_API_KEY")
 
 # Initialize Gemini Embeddings (Converts text to vectors)
 try:
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=api_key)
 except Exception as e:
     print(f"⚠️ Embeddings initialization failed: {e}")
     embeddings = None

@@ -22,7 +22,7 @@ else:
     print(f"❌ API Key NOT FOUND!")
 print("="*40 + "\n")
 
-model_name = "gemini-1.5-flash-latest"
+model_name = "gemini-flash-latest"
 
 try:
     llm = ChatGoogleGenerativeAI(

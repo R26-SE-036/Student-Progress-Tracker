@@ -11,7 +11,7 @@ env_path = os.path.join(base_dir, '.env')
 load_dotenv(env_path)
 
 api_key = os.getenv("GEMINI_API_KEY")
-model_name = "gemini-1.5-flash-latest"
+model_name = "gemini-flash-latest"
 
 try:
     llm = ChatGoogleGenerativeAI(

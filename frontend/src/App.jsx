@@ -30,7 +30,6 @@ function App() {
     axios.post('http://127.0.0.1:8000/api/struggle/detect', errorPayload)
       .then(response => {
         if (response.data.lesson_content) {
-          // FETCHING DYNAMIC CONTENT DIRECTLY FROM AI
           setLessonData({
             title: response.data.lesson_title || "Mastering the Concept",
             issue: response.data.lesson_content.issue,
@@ -38,7 +37,9 @@ function App() {
             hint: response.data.lesson_content.hint,
             exampleCode: response.data.lesson_content.exampleCode,
             videoUrl: response.data.lesson_content.videoUrl, 
-            referenceLink: response.data.lesson_content.referenceLink
+            referenceLink: response.data.lesson_content.referenceLink,
+            // 👇 මේක තමයි කලින් අඩු වෙලා තිබ්බේ
+            mermaidDiagram: response.data.lesson_content.mermaidDiagram
           });
           setCurrentPhase("lesson");
         }

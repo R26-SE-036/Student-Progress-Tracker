@@ -1,13 +1,35 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import mermaid from 'mermaid';
 
 export default function MicroLesson({ lessonData, onStartQuiz }) {
+  const mermaidRef = useRef(null);
+
+  useEffect(() => {
+    if (lessonData && lessonData.mermaidDiagram && mermaidRef.current) {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'dark',
+        securityLevel: 'loose',
+      });
+
+      setTimeout(() => {
+        try {
+          mermaidRef.current.removeAttribute('data-processed');
+          mermaid.run({ nodes: [mermaidRef.current] });
+        } catch (error) {
+          console.error("Mermaid Render Error:", error);
+        }
+      }, 100);
+    }
+  }, [lessonData]);
+
   return (
     <div className="fadeIn MicroLesson">
       <div className="cg-card" style={{ padding: '0', overflow: 'hidden' }}>
         
         <div style={{ backgroundColor: '#111', padding: '20px 30px', borderBottom: '1px solid #222' }}>
           <h3 className="cg-title-content" style={{ color: '#0066FF', margin: 0, fontSize: '1.3rem' }}>
-            {lessonData.title}
+            {lessonData.title || "Understanding Your Logic Error"}
           </h3>
         </div>
 
@@ -23,6 +45,28 @@ export default function MicroLesson({ lessonData, onStartQuiz }) {
             <p className="cg-text-muted">{lessonData.explanation}</p>
           </div>
 
+          {/* DYNAMIC AI GENERATED DIAGRAM */}
+          {lessonData.mermaidDiagram && (
+            <div>
+              <h4 className="cg-title-content" style={{ color: '#32D74B' }}>Visual Concept Model</h4>
+              <div 
+                className="mermaid" 
+                ref={mermaidRef} 
+                style={{ 
+                  backgroundColor: '#111', 
+                  padding: '20px', 
+                  borderRadius: '8px', 
+                  border: '1px solid #222',
+                  textAlign: 'center',
+                  marginTop: '10px',
+                  overflowX: 'auto'
+                }}
+              >
+                {lessonData.mermaidDiagram.replace(/\\n/g, '\n')}
+              </div>
+            </div>
+          )}
+
           {lessonData.exampleCode && (
             <div>
               <h4 className="cg-title-content">Implementation Guide</h4>
@@ -32,7 +76,6 @@ export default function MicroLesson({ lessonData, onStartQuiz }) {
             </div>
           )}
 
-          {/* RE-ADDED THE RESOURCES SECTION HERE */}
           {(lessonData.videoUrl || lessonData.referenceLink) && (
             <div style={{ backgroundColor: '#111', padding: '20px', borderRadius: '8px', border: '1px solid #222' }}>
               <h4 className="cg-title-content" style={{ color: '#EDEDED', marginBottom: '15px' }}>📚 Recommended Resources</h4>

@@ -86,7 +86,7 @@ def generate_validation_quiz(student_id: str, error_type: str, code_snippet: str
     A student is struggling with: {error_type}.
     Their code: {code_snippet}
 
-    Generate exactly 2 multiple choice questions to test their understanding.
+    Generate exactly 4 multiple choice questions to test their understanding.
     Return the response EXACTLY as a JSON array of objects. Do not use markdown.
     [
         {{

@@ -23,7 +23,6 @@ print("="*40 + "\n")
 
 model_name = "gemini-flash-latest"
 
-# Initialize LangChain AI Model
 try:
     llm = ChatGoogleGenerativeAI(
         model=model_name, 
@@ -33,109 +32,81 @@ try:
 except Exception as e:
     llm = None
 
-# Smart Mock Data (Used if AI fails)
 def get_smart_fallback(student_id, error_type, code_snippet):
     return {
         "issue": f"Logical Constraint Issue: {error_type}",
-        "explanation": f"Hello {student_id}, we noticed you've been struggling with your logic. In Java, array boundaries are strict. An array of length 'n' only has valid indices from 0 up to 'n-1'. Your code: '{code_snippet}' tries to force the loop beyond this boundary.",
+        "explanation": f"Hello {student_id}, we noticed you've been struggling with your logic. In Java, array boundaries are strict. An array of length 'n' only has valid indices from 0 up to 'n-1'.",
         "exampleCode": "int[] arr = {10, 20, 30};\n\n// ❌ Incorrect:\n// for (int i = 0; i <= arr.length; i++)\n\n// ✅ Correct Way:\nfor (int i = 0; i < arr.length; i++) {\n    System.out.println(arr[i]);\n}",
-        "videoUrl": "https://www.youtube.com/results?search_query=java+array+out+of+bounds+exception",
+        "mermaidDiagram": "graph TD\n    A[Array length 'n'] --> B[Valid: 0 to n-1]\n    A --> C[Invalid: n]\n    C --> D[IndexOutOfBoundsException]\n    style C fill:#FF453A,stroke:#333,stroke-width:2px",
+        "videoUrl": "https://www.youtube.com/results?search_query=java+array+out+of+bounds",
         "referenceLink": "https://docs.oracle.com/javase/tutorial/java/nutsandbolts/arrays.html",
-        "hint": "Analyze your loop condition. Should you use '<=' which includes the length, or just '<'?"
+        "hint": "Analyze your loop condition. Should you use '<=' or just '<'?"
     }
 
 def generate_real_lesson(student_id: str, error_type: str, code_snippet: str):
     if not api_key:
         return get_smart_fallback(student_id, error_type, code_snippet)
 
-    # 1. Retrieval Step: Fetch relevant notes from ChromaDB
+    # RAG Context
     search_query = f"Explain {error_type} and how to fix {code_snippet}"
     retrieved_context = retrieve_context(search_query)
 
-    # 2. Augmentation Step: Inject notes into the AI prompt
     prompt_template = """
     You are 'Code Guru', an expert computer science tutor for first-year IT students.
-    A student (ID: {student_id}) has made the following logical error 3 times in Java:
-    Error Type: {error_type}
-    Code Snippet: {code_snippet}
+    A student (ID: {student_id}) has made this logical error: {error_type}
+    Code: {code_snippet}
 
-    === UNIVERSITY SYLLABUS NOTES (KNOWLEDGE BASE) ===
+    === SYLLABUS NOTES ===
     {context}
-    ==================================================
+    ======================
 
-    Using the UNIVERSITY SYLLABUS NOTES provided above as your primary pedagogical source, generate a personalized micro-lesson. 
-    Do NOT give the direct answer or corrected code in the explanation, but provide it in the 'exampleCode' section.
+    Generate a micro-lesson. Also, generate a simple 'Mermaid.js' chart (graph TD) that visually models the memory layout or error concept.
     
-    Provide the response in the following structured JSON format exactly:
+    Provide the response EXACTLY in this JSON format:
     {{
-        "issue": "A brief 1-sentence title of the core issue",
-        "explanation": "A pedagogical explanation based on the syllabus notes provided.",
-        "exampleCode": "Write a brief Java code snippet showing the INCORRECT way as a comment, and the CORRECT way underneath it.",
-        "videoUrl": "Provide a relevant YouTube search URL",
-        "referenceLink": "Provide a relevant documentation link",
-        "hint": "A guiding question or hint to help them fix the code themselves"
+        "issue": "A brief 1-sentence title",
+        "explanation": "A pedagogical explanation.",
+        "exampleCode": "Show incorrect code as comment, and correct way underneath.",
+        "mermaidDiagram": "graph TD\\n A[Step 1] --> B[Step 2]",
+        "videoUrl": "Provide YouTube URL",
+        "referenceLink": "Provide Documentation link",
+        "hint": "A guiding question"
     }}
     """
 
-    prompt = PromptTemplate(
-        input_variables=["student_id", "error_type", "code_snippet", "context"],
-        template=prompt_template
-    )
-    
-    formatted_prompt = prompt.format(
-        student_id=student_id, 
-        error_type=error_type, 
-        code_snippet=code_snippet, 
-        context=retrieved_context 
-    )
+    prompt = PromptTemplate(input_variables=["student_id", "error_type", "code_snippet", "context"], template=prompt_template)
+    formatted_prompt = prompt.format(student_id=student_id, error_type=error_type, code_snippet=code_snippet, context=retrieved_context)
     
     content = ""
 
-    # 3. Try generating response using LangChain
     try:
         response = llm.invoke(formatted_prompt)
         content = response.content
         print("✅ Graph RAG Generation Success: Using LangChain")
     except Exception as e:
         print(f"\n⚠️ LangChain Failed: {e}")
-        
-        # 4. Try Direct REST API if LangChain fails
         try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
-            headers = {'Content-Type': 'application/json'}
             data = {"contents": [{"parts": [{"text": formatted_prompt}]}], "generationConfig": {"temperature": 0.3}}
-            res = requests.post(url, headers=headers, json=data)
-            
+            res = requests.post(url, headers={'Content-Type': 'application/json'}, json=data)
             if res.status_code == 200:
                 content = res.json()['candidates'][0]['content']['parts'][0]['text']
-                print("✅ Graph RAG Generation Success: Using Direct REST API")
             else:
-                raise Exception(f"Google API Error: {res.text}")
-        except Exception as fallback_error:
+                raise Exception("API Error")
+        except Exception:
             return get_smart_fallback(student_id, error_type, code_snippet)
 
-    # 5. Safe JSON Parsing (Handles both String and Dictionary formats)
     try:
-        # If the AI model already returned a parsed dictionary, return it directly
         if isinstance(content, dict):
             return content
-            
-        # If the AI model returned a string, clean and parse it
         elif isinstance(content, str):
             content = content.replace("```json", "").replace("```", "").strip()
             start_index = content.find('{')
             end_index = content.rfind('}')
-            
             if start_index != -1 and end_index != -1:
-                clean_json = content[start_index:end_index+1]
+                clean_json = content[start_index:end_index+1].replace("\\n", "\\\\n")
                 return json.loads(clean_json)
-            else:
-                return get_smart_fallback(student_id, error_type, code_snippet)
-                
-        # Fallback for unexpected data types
-        else:
-            return get_smart_fallback(student_id, error_type, code_snippet)
-            
+        return get_smart_fallback(student_id, error_type, code_snippet)
     except Exception as parse_error:
         print(f"❌ JSON Parsing Error: {parse_error}")
         return get_smart_fallback(student_id, error_type, code_snippet)

@@ -6,6 +6,9 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import PromptTemplate
 from app.services.rag_service import retrieve_context
 
+# IMPORT OUR CUSTOM ML SERVICE
+from app.services.ml_service import predict_cognitive_state
+
 # Load environment variables
 base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 env_path = os.path.join(base_dir, '.env')
@@ -43,29 +46,43 @@ def get_smart_fallback(student_id, error_type, code_snippet):
         "hint": "Analyze your loop condition. Should you use '<=' or just '<'?"
     }
 
-def generate_real_lesson(student_id: str, error_type: str, code_snippet: str):
+# Added error_count and past_score parameters with defaults
+def generate_real_lesson(student_id: str, error_type: str, code_snippet: str, error_count: int = 3, past_score: int = 40):
     if not api_key:
         return get_smart_fallback(student_id, error_type, code_snippet)
 
-    # RAG Context
+    # 1. RAG Context Retrieval
     search_query = f"Explain {error_type} and how to fix {code_snippet}"
     retrieved_context = retrieve_context(search_query)
 
+    # 2. ML COGNITIVE STATE PREDICTION (The Research Enhancement)
+    # We pass the real-time data to our Random Forest Model to get the student's mental state
+    cognitive_state = predict_cognitive_state(error_count, code_snippet, past_score)
+    print(f"🎯 Guiding AI based on ML Prediction: {cognitive_state}")
+
+    # 3. Dynamic Prompt Injection (Controlling the AI)
     prompt_template = """
     You are 'Code Guru', an expert computer science tutor for first-year IT students.
     A student (ID: {student_id}) has made this logical error: {error_type}
     Code: {code_snippet}
 
-    === SYLLABUS NOTES ===
+    === MACHINE LEARNING COGNITIVE ANALYSIS ===
+    Our custom Random Forest ML model has analyzed the student's code complexity (using AST), past performance, and error frequency.
+    Predicted Student Cognitive State: "{cognitive_state}"
+    
+    CRITICAL INSTRUCTION: You MUST adapt your teaching style based on this state. 
+    If the state is "High Cognitive Load" or "Needs Simple Basics", you MUST make the explanation extremely simple, step-by-step, and avoid complex jargon. Be highly encouraging.
+
+    === SYLLABUS NOTES (KNOWLEDGE BASE) ===
     {context}
     ======================
 
-    Generate a micro-lesson. Also, generate a simple 'Mermaid.js' chart (graph TD) that visually models the memory layout or error concept.
+    Generate a micro-lesson adapting to the Cognitive State. Also, generate a simple 'Mermaid.js' chart (graph TD) that visually models the memory layout or error concept.
     
     Provide the response EXACTLY in this JSON format:
     {{
         "issue": "A brief 1-sentence title",
-        "explanation": "A pedagogical explanation.",
+        "explanation": "A pedagogical explanation adapted to the ML Cognitive State.",
         "exampleCode": "Show incorrect code as comment, and correct way underneath.",
         "mermaidDiagram": "graph TD\\n A[Step 1] --> B[Step 2]",
         "videoUrl": "Provide YouTube URL",
@@ -74,15 +91,24 @@ def generate_real_lesson(student_id: str, error_type: str, code_snippet: str):
     }}
     """
 
-    prompt = PromptTemplate(input_variables=["student_id", "error_type", "code_snippet", "context"], template=prompt_template)
-    formatted_prompt = prompt.format(student_id=student_id, error_type=error_type, code_snippet=code_snippet, context=retrieved_context)
+    prompt = PromptTemplate(input_variables=["student_id", "error_type", "code_snippet", "cognitive_state", "context"], template=prompt_template)
+    
+    # Format the prompt with all our data
+    formatted_prompt = prompt.format(
+        student_id=student_id, 
+        error_type=error_type, 
+        code_snippet=code_snippet, 
+        cognitive_state=cognitive_state,
+        context=retrieved_context
+    )
     
     content = ""
 
+    # 4. Generate response using LangChain
     try:
         response = llm.invoke(formatted_prompt)
         content = response.content
-        print("✅ Graph RAG Generation Success: Using LangChain")
+        print("✅ Graph RAG + ML Customization Success: Using LangChain")
     except Exception as e:
         print(f"\n⚠️ LangChain Failed: {e}")
         try:
@@ -96,6 +122,7 @@ def generate_real_lesson(student_id: str, error_type: str, code_snippet: str):
         except Exception:
             return get_smart_fallback(student_id, error_type, code_snippet)
 
+    # 5. Safe JSON Parsing
     try:
         if isinstance(content, dict):
             return content

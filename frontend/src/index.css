@@ -8,12 +8,13 @@ html, body {
   padding: 0;
   width: 100%;
   min-height: 100vh;
-  background-color: #000000; /* Forces entire screen to be black */
-  color: #EDEDED;
+  /* Deep Premium Slate Background */
+  background-color: #0F172A; 
+  color: #F8FAFC;
 }
 
 #root {
   width: 100%;
   min-height: 100vh;
-  display: block; /* Removes Vite's flex alignment constraints */
+  display: block; 
 }

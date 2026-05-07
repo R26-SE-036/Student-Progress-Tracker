@@ -15,7 +15,6 @@ export default function ValidationQuiz({ studentId, errorType, codeSnippet }) {
     const payload = { student_id: studentId, error_type: errorType, code_snippet: codeSnippet };
     axios.post('http://127.0.0.1:8000/api/quiz/generate', payload)
       .then(response => {
-        // Ensure data is valid before setting
         if (response.data.quiz_data && response.data.quiz_data.length > 0) {
           setQuizData(response.data.quiz_data);
         }
@@ -62,14 +61,14 @@ export default function ValidationQuiz({ studentId, errorType, codeSnippet }) {
         <h2 className="cg-title-section" style={{ fontSize: '2rem' }}>Assessment Complete</h2>
         <div style={{ margin: '30px 0' }}>
           <span className="cg-text-muted" style={{ fontSize: '1.2rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Final Score</span>
-          <h1 style={{ fontSize: '4rem', margin: '10px 0', color: passed ? '#32D74B' : '#FF453A' }}>
-            {score}<span style={{color: '#333'}}>/</span>{quizData?.length || 2}
+          <h1 style={{ fontSize: '4rem', margin: '10px 0', color: passed ? '#34D399' : '#F87171' }}>
+            {score}<span style={{color: '#475569'}}>/</span>{quizData?.length || 2}
           </h1>
         </div>
 
-        <div style={{ marginTop: '40px', paddingTop: '30px', borderTop: '1px solid #222', textAlign: 'left' }}>
+        <div style={{ marginTop: '40px', paddingTop: '30px', borderTop: '1px solid #334155', textAlign: 'left' }}>
           <h4 className="cg-title-content">Database Sync Status</h4>
-          {graphStatus === "updating" && <div className="cg-feedback-box" style={{backgroundColor: '#111', color: '#FFD60A'}}>⏳ Committing results to Neo4j Knowledge Graph...</div>}
+          {graphStatus === "updating" && <div className="cg-feedback-box" style={{backgroundColor: 'rgba(245, 158, 11, 0.1)', color: '#FBBF24'}}>⏳ Committing results to Neo4j Knowledge Graph...</div>}
           {graphStatus === "success" && <div className="cg-feedback-box cg-feedback-success">✅ Neo4j Database Sync Successful! Relationship updated.</div>}
           {graphStatus === "error" && <div className="cg-feedback-box cg-feedback-error">❌ Database Connection Failed. Please check Backend Neo4j configurations.</div>}
         </div>
@@ -81,14 +80,14 @@ export default function ValidationQuiz({ studentId, errorType, codeSnippet }) {
     <div className="cg-card ValidationQuiz fadeIn">
       {quizLoading || !quizData ? (
         <div style={{ textAlign: 'center', padding: '60px 0' }}>
-          <h3 className="cg-title-section" style={{ color: '#0066FF' }}>Generating AI Assessment...</h3>
+          <h3 className="cg-title-section" style={{ color: '#3B82F6' }}>Generating AI Assessment...</h3>
           <p className="cg-text-muted">Analyzing your code context to build relevant questions.</p>
         </div>
       ) : (
         <div>
           <div className="cg-flex-between" style={{ marginBottom: '30px' }}>
             <span className="cg-text-muted" style={{fontFamily: 'Fira Code', fontSize: '0.9rem'}}>QUESTION {currentQIndex + 1}/{quizData.length}</span>
-            <span style={{ padding: '4px 10px', backgroundColor: '#111', borderRadius: '4px', fontSize: '0.8rem', color: '#A1A1AA' }}>{errorType}</span>
+            <span style={{ padding: '4px 10px', backgroundColor: '#0F172A', borderRadius: '4px', fontSize: '0.8rem', color: '#94A3B8', border: '1px solid #334155' }}>{errorType}</span>
           </div>
           
           <h3 className="cg-title-section" style={{ fontSize: '1.3rem', marginBottom: '30px', lineHeight: '1.5' }}>
@@ -96,7 +95,6 @@ export default function ValidationQuiz({ studentId, errorType, codeSnippet }) {
           </h3>
           
           <div className="cg-flex-col" style={{ gap: '15px', marginBottom: '30px' }}>
-            {/* ADDED OPTIONAL CHAINING HERE (?.) TO PREVENT CRASHES */}
             {quizData[currentQIndex]?.options?.map((option, idx) => (
               <button 
                 key={idx}
@@ -111,16 +109,16 @@ export default function ValidationQuiz({ studentId, errorType, codeSnippet }) {
 
           {isAnswerChecked && (
             <div className={`cg-feedback-box ${selectedOption === quizData[currentQIndex]?.correct_answer ? 'cg-feedback-success' : 'cg-feedback-error'}`}>
-              <h4 style={{ margin: '0 0 8px 0', color: selectedOption === quizData[currentQIndex]?.correct_answer ? '#32D74B' : '#FF453A' }}>
+              <h4 style={{ margin: '0 0 8px 0', color: selectedOption === quizData[currentQIndex]?.correct_answer ? '#34D399' : '#F87171' }}>
                 {selectedOption === quizData[currentQIndex]?.correct_answer ? "Correct" : "Incorrect"}
               </h4>
-              <p style={{ margin: 0, color: '#EDEDED' }}>{quizData[currentQIndex]?.explanation}</p>
+              <p style={{ margin: 0, color: '#E2E8F0' }}>{quizData[currentQIndex]?.explanation}</p>
             </div>
           )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
             {!isAnswerChecked ? (
-              <button onClick={checkAnswer} disabled={!selectedOption} className="cg-btn cg-btn-outline" style={{backgroundColor: selectedOption ? '#FFFFFF' : 'transparent', color: selectedOption ? '#000' : '#EDEDED'}}>
+              <button onClick={checkAnswer} disabled={!selectedOption} className="cg-btn cg-btn-outline" style={{backgroundColor: selectedOption ? '#3B82F6' : 'transparent', color: selectedOption ? '#FFF' : '', borderColor: selectedOption ? '#3B82F6' : '#475569'}}>
                 Submit Answer
               </button>
             ) : (

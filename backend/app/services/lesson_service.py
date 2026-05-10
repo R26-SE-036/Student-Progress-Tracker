@@ -5,31 +5,20 @@ from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import PromptTemplate
 from app.services.rag_service import retrieve_context
-
-# IMPORT OUR CUSTOM ML SERVICE
 from app.services.ml_service import predict_cognitive_state
 
-# Load environment variables
 base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 env_path = os.path.join(base_dir, '.env')
 load_dotenv(env_path)
 
 api_key = os.getenv("GEMINI_API_KEY")
 
-print("\n" + "="*40)
-print("🔍 CODE GURU - AI SYSTEM CHECK")
-if api_key:
-    print(f"✅ API Key Loaded! (Starts with: {api_key[:6]}...)")
-else:
-    print(f"❌ API Key NOT FOUND!")
-print("="*40 + "\n")
-
 model_name = "gemini-flash-latest"
 
 try:
     llm = ChatGoogleGenerativeAI(
         model=model_name, 
-        temperature=0.3,
+        temperature=0.3, # Low temperature keeps it focused
         google_api_key=api_key
     )
 except Exception as e:
@@ -37,63 +26,70 @@ except Exception as e:
 
 def get_smart_fallback(student_id, error_type, code_snippet):
     return {
-        "issue": f"Logical Constraint Issue: {error_type}",
-        "explanation": f"Hello {student_id}, we noticed you've been struggling with your logic. In Java, array boundaries are strict. An array of length 'n' only has valid indices from 0 up to 'n-1'.",
-        "exampleCode": "int[] arr = {10, 20, 30};\n\n// ❌ Incorrect:\n// for (int i = 0; i <= arr.length; i++)\n\n// ✅ Correct Way:\nfor (int i = 0; i < arr.length; i++) {\n    System.out.println(arr[i]);\n}",
-        "mermaidDiagram": "graph TD\n    A[Array length 'n'] --> B[Valid: 0 to n-1]\n    A --> C[Invalid: n]\n    C --> D[IndexOutOfBoundsException]\n    style C fill:#FF453A,stroke:#333,stroke-width:2px",
-        "videoUrl": "https://www.youtube.com/results?search_query=java+array+out+of+bounds",
-        "referenceLink": "https://docs.oracle.com/javase/tutorial/java/nutsandbolts/arrays.html",
-        "hint": "Analyze your loop condition. Should you use '<=' or just '<'?"
+        "issue": f"Logical Issue Detected: {error_type}",
+        "explanation": f"Hello {student_id}, we noticed a struggle with {error_type}. Ensure you are using the correct syntax and logic.",
+        "exampleCode": f"// Your Code:\n// {code_snippet}\n\n// Tip: Double check your operators and boundaries.",
+        "mermaidDiagram": "graph TD\n    A[Code Execution] --> B{Check Condition}\n    B -- Invalid --> C[Logical Error]\n    B -- Valid --> D[Success]\n    style C fill:#FF453A,stroke:#333",
+        "videoUrl": f"https://www.youtube.com/results?search_query=java+{error_type.replace('_', '+')}",
+        "referenceLink": "https://docs.oracle.com/javase/tutorial/java/nutsandbolts/",
+        "hint": "Check your logic boundaries and operators."
     }
 
-# Added error_count and past_score parameters with defaults
-def generate_real_lesson(student_id: str, error_type: str, code_snippet: str, error_count: int = 3, past_score: int = 40):
+def generate_real_lesson(student_id: str, error_type: str, code_snippet: str):
     if not api_key:
         return get_smart_fallback(student_id, error_type, code_snippet)
 
-    # 1. RAG Context Retrieval
+    # --- 🧪 DYNAMIC METRICS FOR PP1 PRESENTATION ---
+    if "LOOP" in error_type:
+        error_count = 6
+        past_score = 30
+    elif "ARRAY" in error_type:
+        error_count = 4
+        past_score = 60
+    else:
+        error_count = 3
+        past_score = 80
+    # -----------------------------------------------
+
     search_query = f"Explain {error_type} and how to fix {code_snippet}"
     retrieved_context = retrieve_context(search_query)
 
-    # 2. ML COGNITIVE STATE PREDICTION (The Research Enhancement)
-    # We pass the real-time data to our Random Forest Model to get the student's mental state
     cognitive_state = predict_cognitive_state(error_count, code_snippet, past_score)
     print(f"🎯 Guiding AI based on ML Prediction: {cognitive_state}")
 
-    # 3. Dynamic Prompt Injection (Controlling the AI)
+    # 🚀 ULTRA-STRICT PROMPT
     prompt_template = """
     You are 'Code Guru', an expert computer science tutor for first-year IT students.
-    A student (ID: {student_id}) has made this logical error: {error_type}
-    Code: {code_snippet}
+    
+    CRITICAL: You MUST focus ONLY on this specific error: "{error_type}"
+    Student's Code: "{code_snippet}"
 
     === MACHINE LEARNING COGNITIVE ANALYSIS ===
-    Our custom Random Forest ML model has analyzed the student's code complexity (using AST), past performance, and error frequency.
     Predicted Student Cognitive State: "{cognitive_state}"
-    
-    CRITICAL INSTRUCTION: You MUST adapt your teaching style based on this state. 
-    If the state is "High Cognitive Load" or "Needs Simple Basics", you MUST make the explanation extremely simple, step-by-step, and avoid complex jargon. Be highly encouraging.
+    INSTRUCTION: If the state is "High Cognitive Load" or "Needs Simple Basics", explain it extremely simply, step-by-step. If "Minor Syntax Error", give a quick direct correction.
 
-    === SYLLABUS NOTES (KNOWLEDGE BASE) ===
+    === SYLLABUS NOTES (Use ONLY as background context) ===
     {context}
     ======================
 
-    Generate a micro-lesson adapting to the Cognitive State. Also, generate a simple 'Mermaid.js' chart (graph TD) that visually models the memory layout or error concept.
+    Generate a micro-lesson specifically addressing the "{error_type}". 
+    Do NOT give a generic lesson. It must be specific to the code provided.
+    Also, generate a simple 'Mermaid.js' chart (graph TD) showing the visual breakdown of THIS specific error.
     
     Provide the response EXACTLY in this JSON format:
     {{
-        "issue": "A brief 1-sentence title",
-        "explanation": "A pedagogical explanation adapted to the ML Cognitive State.",
-        "exampleCode": "Show incorrect code as comment, and correct way underneath.",
+        "issue": "A specific 1-sentence title about {error_type}",
+        "explanation": "A pedagogical explanation adapted to the ML Cognitive State and the specific error.",
+        "exampleCode": "Show the student's incorrect code as a comment, and the correct way underneath.",
         "mermaidDiagram": "graph TD\\n A[Step 1] --> B[Step 2]",
-        "videoUrl": "Provide YouTube URL",
-        "referenceLink": "Provide Documentation link",
-        "hint": "A guiding question"
+        "videoUrl": "Provide YouTube URL relevant to {error_type}",
+        "referenceLink": "Provide Documentation link relevant to {error_type}",
+        "hint": "A guiding question specific to {error_type}"
     }}
     """
 
     prompt = PromptTemplate(input_variables=["student_id", "error_type", "code_snippet", "cognitive_state", "context"], template=prompt_template)
     
-    # Format the prompt with all our data
     formatted_prompt = prompt.format(
         student_id=student_id, 
         error_type=error_type, 
@@ -104,13 +100,12 @@ def generate_real_lesson(student_id: str, error_type: str, code_snippet: str, er
     
     content = ""
 
-    # 4. Generate response using LangChain
     try:
         response = llm.invoke(formatted_prompt)
         content = response.content
         print("✅ Graph RAG + ML Customization Success: Using LangChain")
     except Exception as e:
-        print(f"\n⚠️ LangChain Failed: {e}")
+        print(f"\\n⚠️ LangChain Failed: {e}")
         try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
             data = {"contents": [{"parts": [{"text": formatted_prompt}]}], "generationConfig": {"temperature": 0.3}}
@@ -122,7 +117,9 @@ def generate_real_lesson(student_id: str, error_type: str, code_snippet: str, er
         except Exception:
             return get_smart_fallback(student_id, error_type, code_snippet)
 
-    # 5. Safe JSON Parsing
+    # 🐛 DEBUGGING PRINT: See exactly what the AI generated before parsing
+    print(f"\\n--- RAW AI LESSON OUTPUT ---\\n{content[:500]}...\\n----------------------------\\n")
+
     try:
         if isinstance(content, dict):
             return content

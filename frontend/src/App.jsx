@@ -11,18 +11,45 @@ function App() {
   const [lessonData, setLessonData] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const studentId = "user_0bcc693e70f0487da5a56117f923c73e";
-  const errorType = "OFF_BY_ONE_LOOP_BOUNDARY";
-  const conceptTag = "loop_boundaries";
-  const codeSnippet = "for (int i = 0; i <= arr.length; i++) { ... }";
+  // ==========================================
+  // 🧪 TEST SCENARIO 1: "Minor Syntax Error"
+  // (Small error, error count - 3)
+  // ==========================================
+  const studentId = "user_0bcc693e70f0";
+  const errorType = "INCORRECT_CONDITIONAL_OPERATOR";
+  const conceptTag = "conditional_statements";
+  const codeSnippet = "if (marks = 100) { System.out.println('Pass'); }"; 
+  const errorCount = 3; 
+
+  // ==========================================
+  // 🧪 TEST SCENARIO 2: "Needs Simple Basics"
+  // (Simple code, many errors - 4)
+  // ==========================================
+  // const studentId = "user_0bcc693e70f0";
+  // const errorType = "ARRAY_LENGTH_INDEX_MISUSE";
+  // const conceptTag = "arrays";
+  // const codeSnippet = "int[] arr = new int[5]; arr[5] = 10;"; 
+  // const errorCount = 4; 
+
+  // ==========================================
+  // 🧪 TEST SCENARIO 3: "High Cognitive Load"
+  // (Complex code, many errors - 6)
+  // ==========================================
+  // const studentId = "user_0bcc693e70f0";
+  // const errorType = "OFF_BY_ONE_LOOP_BOUNDARY";
+  // const conceptTag = "loop_boundaries";
+  // const codeSnippet = "for(int i=0; i<10; i++) { for(int j=0; j<5; j++) { if(i==j) { while(true) { if(x=10) { break; } } } } }"; 
+  // const errorCount = 6; 
+
 
   const generatePersonalizedLesson = () => {
     setLoading(true);
     
+    
     const errorPayload = { 
       student_id: studentId, 
       error_type: errorType, 
-      error_count: 3, 
+      error_count: errorCount, 
       concept_tag: conceptTag,
       code_snippet: codeSnippet 
     };
@@ -38,7 +65,6 @@ function App() {
             exampleCode: response.data.lesson_content.exampleCode,
             videoUrl: response.data.lesson_content.videoUrl, 
             referenceLink: response.data.lesson_content.referenceLink,
-            // 👇 මේක තමයි කලින් අඩු වෙලා තිබ්බේ
             mermaidDiagram: response.data.lesson_content.mermaidDiagram
           });
           setCurrentPhase("lesson");

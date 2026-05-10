@@ -1,5 +1,4 @@
 import os
-import ast
 import joblib
 import pandas as pd
 
@@ -17,41 +16,36 @@ except Exception as e:
 
 def extract_code_complexity(code_snippet: str) -> int:
     """
-    Uses Python's Abstract Syntax Tree (AST) to analyze the student's code.
-    Counts loops, conditions, and variables to calculate a Complexity Score.
+    Java-specific feature extraction.
+    Counts loops, conditions, and operators to calculate a Complexity Score.
     """
     complexity = 0
-    try:
-        # Parse the code into an AST structure
-        tree = ast.parse(code_snippet)
-        
-        # Traverse the tree nodes
-        for node in ast.walk(tree):
-            if isinstance(node, (ast.For, ast.While, ast.If)):
-                complexity += 2 # Loops and conditions add more complexity
-            elif isinstance(node, (ast.Assign, ast.FunctionDef)):
-                complexity += 1 # Variable assignments add minor complexity
-                
-    except SyntaxError:
-        # If the code has major syntax errors and cannot be parsed, assign a default score
-        complexity = 5
+    code = code_snippet.lower()
+    
+    # Extract structural features from Java code
+    complexity += code.count("for") * 2
+    complexity += code.count("while") * 2
+    complexity += code.count("if") * 2
+    complexity += code.count("else") * 1
+    complexity += code.count("=") * 1
+    complexity += code.count("&&") * 1
+    complexity += code.count("||") * 1
+    complexity += code.count("[") * 1 # Arrays
+    
+    if complexity == 0:
+        complexity = 2
         
     # Ensure the score stays within our model's trained range (1 to 20)
     return max(1, min(complexity, 20))
 
 def predict_cognitive_state(error_count: int, code_snippet: str, past_score: int) -> str:
-    """
-    Takes student metrics, extracts code complexity via AST, 
-    and uses the Random Forest model to predict the student's cognitive state.
-    """
-    # Fallback if model is missing
     if rf_model is None:
         return "Needs Simple Basics"
         
-    # 1. AST Feature Extraction
+    # 1. Feature Extraction
     complexity_score = extract_code_complexity(code_snippet)
     
-    # 2. Prepare features as a Pandas DataFrame (This fixes the scikit-learn warning!)
+    # 2. Prepare features as a Pandas DataFrame
     features = pd.DataFrame(
         [[error_count, complexity_score, past_score]], 
         columns=['error_count', 'complexity_score', 'past_score']

@@ -1,0 +1,6 @@
+Java Conditional Statements and Operators
+In Java, the '=' operator is used for assignment (assigning a value to a variable).
+The '==' operator is used for equality comparison (checking if two values are equal).
+A very common beginner mistake is using 'if (x = 10)' instead of 'if (x == 10)'.
+This causes a compilation error or logical bug because the condition expects a boolean, but an assignment returns a value.
+Always ensure loop boundaries and array lengths are also checked using correct relational operators like <, >, <=, or >=.

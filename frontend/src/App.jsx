@@ -15,11 +15,11 @@ function App() {
   // 🧪 TEST SCENARIO 1: "Minor Syntax Error"
   // (Small error, error count - 3)
   // ==========================================
-  const studentId = "user_0bcc693e70f0";
-  const errorType = "INCORRECT_CONDITIONAL_OPERATOR";
-  const conceptTag = "conditional_statements";
-  const codeSnippet = "if (marks = 100) { System.out.println('Pass'); }"; 
-  const errorCount = 3; 
+  // const studentId = "user_0bcc693e70f0";
+  // const errorType = "INCORRECT_CONDITIONAL_OPERATOR";
+  // const conceptTag = "conditional_statements";
+  // const codeSnippet = "if (marks = 100) { System.out.println('Pass'); }"; 
+  // const errorCount = 3; 
 
   // ==========================================
   // 🧪 TEST SCENARIO 2: "Needs Simple Basics"
@@ -35,11 +35,11 @@ function App() {
   // 🧪 TEST SCENARIO 3: "High Cognitive Load"
   // (Complex code, many errors - 6)
   // ==========================================
-  // const studentId = "user_0bcc693e70f0";
-  // const errorType = "OFF_BY_ONE_LOOP_BOUNDARY";
-  // const conceptTag = "loop_boundaries";
-  // const codeSnippet = "for(int i=0; i<10; i++) { for(int j=0; j<5; j++) { if(i==j) { while(true) { if(x=10) { break; } } } } }"; 
-  // const errorCount = 6; 
+  const studentId = "user_0bcc693e70f0";
+  const errorType = "OFF_BY_ONE_LOOP_BOUNDARY";
+  const conceptTag = "loop_boundaries";
+  const codeSnippet = "for(int i=0; i<10; i++) { for(int j=0; j<5; j++) { if(i==j) { while(true) { if(x=10) { break; } } } } }"; 
+  const errorCount = 6; 
 
 
   const generatePersonalizedLesson = () => {

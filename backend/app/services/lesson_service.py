@@ -18,7 +18,7 @@ model_name = "gemini-flash-latest"
 try:
     llm = ChatGoogleGenerativeAI(
         model=model_name, 
-        temperature=0.3, # Low temperature keeps it focused
+        temperature=0.3, 
         google_api_key=api_key
     )
 except Exception as e:
@@ -57,7 +57,6 @@ def generate_real_lesson(student_id: str, error_type: str, code_snippet: str):
     cognitive_state = predict_cognitive_state(error_count, code_snippet, past_score)
     print(f"🎯 Guiding AI based on ML Prediction: {cognitive_state}")
 
-    # 🚀 ULTRA-STRICT PROMPT
     prompt_template = """
     You are 'Code Guru', an expert computer science tutor for first-year IT students.
     
@@ -105,7 +104,7 @@ def generate_real_lesson(student_id: str, error_type: str, code_snippet: str):
         content = response.content
         print("✅ Graph RAG + ML Customization Success: Using LangChain")
     except Exception as e:
-        print(f"\\n⚠️ LangChain Failed: {e}")
+        print(f"\n⚠️ LangChain Failed: {e}")
         try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
             data = {"contents": [{"parts": [{"text": formatted_prompt}]}], "generationConfig": {"temperature": 0.3}}
@@ -117,8 +116,11 @@ def generate_real_lesson(student_id: str, error_type: str, code_snippet: str):
         except Exception:
             return get_smart_fallback(student_id, error_type, code_snippet)
 
-    # 🐛 DEBUGGING PRINT: See exactly what the AI generated before parsing
-    print(f"\\n--- RAW AI LESSON OUTPUT ---\\n{content[:500]}...\\n----------------------------\\n")
+    print(f"\n--- RAW AI LESSON OUTPUT ---\n{str(content)[:500]}...\n----------------------------\n")
+
+    # 🚀 THE FIX: Extract text if LangChain returned a List of blocks
+    if isinstance(content, list) and len(content) > 0 and isinstance(content[0], dict) and 'text' in content[0]:
+        content = content[0]['text']
 
     try:
         if isinstance(content, dict):

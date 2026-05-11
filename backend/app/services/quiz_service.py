@@ -83,7 +83,6 @@ def generate_validation_quiz(student_id: str, error_type: str, code_snippet: str
     if not api_key:
         return get_smart_quiz_fallback(error_type)
 
-    # 🚀 ULTRA-STRICT PROMPT FOR QUIZ
     prompt_template = """
     You are 'Code Guru', an expert computer science tutor.
     The student specifically struggled with this error: "{error_type}"
@@ -128,8 +127,9 @@ def generate_validation_quiz(student_id: str, error_type: str, code_snippet: str
         except Exception as fallback_error:
             return get_smart_quiz_fallback(error_type)
 
-    # 🐛 DEBUGGING PRINT: See exact Quiz JSON generated
-    print(f"\\n--- RAW AI QUIZ OUTPUT ---\\n{content[:500]}...\\n---------------------------\\n")
+    # 🚀 THE FIX: Extract text if LangChain returned a List of blocks
+    if isinstance(content, list) and len(content) > 0 and isinstance(content[0], dict) and 'text' in content[0]:
+        content = content[0]['text']
 
     try:
         parsed_data = None
